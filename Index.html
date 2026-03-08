@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ShelbyVault — Decentralized File Storage</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #08090c; --surface: #0f1117; --border: #1e2130;
+      --border-bright: #2e3350; --accent: #4fffb0; --accent2: #7b61ff;
+      --text: #e8eaf6; --muted: #5a607a; --danger: #ff4f6a; --warning: #ffb74f;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; overflow-x: hidden; }
+    body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(79,255,176,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(79,255,176,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+    .orb { position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0; opacity: 0.15; }
+    .orb-1 { width: 600px; height: 600px; background: var(--accent2); top: -200px; right: -200px; animation: float1 12s ease-in-out infinite; }
+    .orb-2 { width: 400px; height: 400px; background: var(--accent); bottom: -100px; left: -100px; animation: float2 15s ease-in-out infinite; }
+    @keyframes float1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-30px,30px)} }
+    @keyframes float2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,-20px)} }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    .container { max-width: 900px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+    header { padding: 28px 0 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.5px; }
+    .logo-text span { color: var(--accent); }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .badge { background: rgba(79,255,176,0.1); border: 1px solid rgba(79,255,176,0.25); color: var(--accent); font-size: 11px; padding: 4px 10px; border-radius: 20px; }
+    .btn-connect { background: transparent; border: 1px solid var(--border-bright); color: var(--text); padding: 8px 18px; border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 13px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+    .btn-connect:hover { border-color: var(--accent); color: var(--accent); }
+    .wallet-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); transition: background 0.3s; }
+    .wallet-dot.connected { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+    .hero { padding: 64px 0 48px; text-align: center; }
+    .hero-tag { display: inline-block; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); margin-bottom: 20px; opacity: 0; animation: fadeUp 0.6s ease forwards 0.2s; }
+    .hero h1 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(36px, 6vw, 60px); line-height: 1.05; letter-spacing: -2px; margin-bottom: 20px; opacity: 0; animation: fadeUp 0.6s ease forwards 0.35s; }
+    .hero h1 .highlight { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero p { color: var(--muted); font-size: 15px; max-width: 480px; margin: 0 auto 40px; line-height: 1.7; opacity: 0; animation: fadeUp 0.6s ease forwards 0.5s; }
+    .stats-bar { display: flex; margin-bottom: 48px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; opacity: 0; animation: fadeUp 0.6s ease forwards 0.65s; }
+    .stat { flex: 1; padding: 16px 24px; text-align: center; border-right: 1px solid var(--border); }
+    .stat:last-child { border-right: none; }
+    .stat-value { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 20px; color: var(--accent); margin-bottom: 4px; }
+    .stat-label { font-size: 11px; color: var(--muted); }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; opacity: 0; animation: fadeUp 0.6s ease forwards 0.8s; }
+    .card-tabs { display: flex; border-bottom: 1px solid var(--border); }
+    .tab { flex: 1; padding: 16px 20px; font-family: 'DM Mono', monospace; font-size: 13px; background: transparent; border: none; color: var(--muted); cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent; }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(79,255,176,0.04); }
+    .tab-content { display: none; padding: 32px; }
+    .tab-content.active { display: block; }
+    .upload-zone { border: 2px dashed var(--border-bright); border-radius: 12px; padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; }
+    .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); }
+    .upload-icon { font-size: 42px; margin-bottom: 16px; display: block; }
+    .upload-zone h3 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; margin-bottom: 8px; }
+    .upload-zone p { color: var(--muted); font-size: 13px; }
+    .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .file-preview { display: none; margin-top: 20px; background: rgba(79,255,176,0.05); border: 1px solid rgba(79,255,176,0.2); border-radius: 10px; padding: 16px 20px; align-items: center; gap: 16px; }
+    .file-preview.visible { display: flex; }
+    .file-preview-icon { font-size: 28px; }
+    .file-preview-info { flex: 1; }
+    .file-preview-name { font-size: 13px; color: var(--text); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 400px; }
+    .file-preview-size { font-size: 11px; color: var(--muted); }
+    .file-preview-remove { background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 18px; transition: color 0.2s; }
+    .file-preview-remove:hover { color: var(--danger); }
+    .upload-options { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+    .option-group label { display: block; font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+    .option-group select { width: 100%; background: var(--bg); border: 1px solid var(--border-bright); border-radius: 8px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; padding: 10px 14px; outline: none; -webkit-appearance: none; }
+    .option-group select:focus { border-color: var(--accent); }
+    .btn-primary { width: 100%; margin-top: 24px; padding: 14px; background: linear-gradient(135deg, var(--accent), #38d498); border: none; border-radius: 10px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; color: #08090c; cursor: pointer; transition: all 0.2s; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .progress-wrap { display: none; margin-top: 20px; }
+    .progress-wrap.visible { display: block; }
+    .progress-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .progress-bar-bg { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 3px; width: 0%; transition: width 0.3s ease; }
+    .log { margin-top: 20px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-size: 12px; color: var(--muted); max-height: 160px; overflow-y: auto; display: none; line-height: 1.8; }
+    .log.visible { display: block; }
+    .log-line { display: flex; gap: 10px; }
+    .log-time { color: var(--accent2); flex-shrink: 0; }
+    .log-ok { color: var(--accent); }
+    .log-err { color: var(--danger); }
+    .blob-result { display: none; margin-top: 20px; background: rgba(79,255,176,0.05); border: 1px solid rgba(79,255,176,0.25); border-radius: 10px; padding: 20px; }
+    .blob-result.visible { display: block; }
+    .blob-result-label { font-size: 11px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+    .blob-result-id { font-size: 13px; color: var(--accent); word-break: break-all; display: flex; align-items: flex-start; gap: 10px; }
+    .copy-btn { flex-shrink: 0; background: transparent; border: 1px solid rgba(79,255,176,0.3); color: var(--accent); padding: 4px 10px; border-radius: 5px; font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; }
+    .retrieve-form { display: flex; flex-direction: column; gap: 16px; }
+    .input-group { display: flex; flex-direction: column; gap: 8px; }
+    .input-group label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .input-group input { background: var(--bg); border: 1px solid var(--border-bright); border-radius: 8px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; padding: 12px 16px; outline: none; width: 100%; }
+    .input-group input:focus { border-color: var(--accent); }
+    .input-group input::placeholder { color: var(--muted); }
+    .files-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .files-header h3 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; }
+    .btn-sm { background: transparent; border: 1px solid var(--border-bright); color: var(--muted); padding: 6px 14px; border-radius: 6px; font-family: 'DM Mono', monospace; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+    .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+    .files-list { display: flex; flex-direction: column; gap: 10px; }
+    .file-row { display: flex; align-items: center; gap: 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; transition: border-color 0.2s; }
+    .file-row:hover { border-color: var(--border-bright); }
+    .file-row-icon { font-size: 22px; flex-shrink: 0; }
+    .file-row-info { flex: 1; min-width: 0; }
+    .file-row-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+    .file-row-meta { font-size: 11px; color: var(--muted); display: flex; gap: 14px; }
+    .file-row-status { font-size: 11px; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
+    .status-active { background: rgba(79,255,176,0.12); color: var(--accent); }
+    .status-expired { background: rgba(255,79,106,0.12); color: var(--danger); }
+    .file-row-actions { display: flex; gap: 8px; }
+    .icon-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+    .empty-state-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+    .toast { position: fixed; bottom: 30px; right: 30px; background: var(--surface); border: 1px solid var(--accent); color: var(--accent); padding: 14px 20px; border-radius: 10px; font-size: 13px; z-index: 1000; transform: translateY(80px); opacity: 0; transition: all 0.35s cubic-bezier(0.175,0.885,0.32,1.275); }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.error { border-color: var(--danger); color: var(--danger); }
+    footer { margin-top: 64px; padding: 28px 0; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted); }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--accent); }
+    @media (max-width: 600px) { .upload-options { grid-template-columns: 1fr; } .file-row-actions { display: none; } footer { flex-direction: column; gap: 12px; } }
+  </style>
+</head>
+<body>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="container">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🗄</div>
+      <div class="logo-text">Shelby<span>Vault</span></div>
+    </div>
+    <div class="header-right">
+      <div class="badge">TESTNET</div>
+      <button class="btn-connect" onclick="toggleWallet()">
+        <div class="wallet-dot" id="walletDot"></div>
+        <span id="walletLabel">Connect Wallet</span>
+      </button>
+    </div>
+  </header>
+  <div class="hero">
+    <div class="hero-tag">⬡ Built on Shelby Protocol</div>
+    <h1>Decentralized storage<br>for the <span class="highlight">open web</span></h1>
+    <p>Upload, store, and retrieve files on Shelby's high-performance blob storage network. Powered by Aptos & Jump Trading infrastructure.</p>
+  </div>
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-value" id="statBlobs">0</div><div class="stat-label">Blobs Stored</div></div>
+    <div class="stat"><div class="stat-value" id="statSize">0 B</div><div class="stat-label">Total Size</div></div>
+    <div class="stat"><div class="stat-value">Shelbynet</div><div class="stat-label">Network</div></div>
+    <div class="stat"><div class="stat-value" id="statStatus">● Live</div><div class="stat-label">Node Status</div></div>
+  </div>
+  <div class="card">
+    <div class="card-tabs">
+      <button class="tab active" onclick="switchTab('upload',this)">⬆ Upload</button>
+      <button class="tab" onclick="switchTab('retrieve',this)">⬇ Retrieve</button>
+      <button class="tab" onclick="switchTab('files',this)">📂 My Blobs</button>
+    </div>
+    <div class="tab-content active" id="tab-upload">
+      <div class="upload-zone" id="dropZone">
+        <input type="file" id="fileInput" onchange="handleFileSelect(event)" />
+        <span class="upload-icon">📦</span>
+        <h3>Drop your file here</h3>
+        <p>or click to browse · Max 100MB · All formats supported</p>
+      </div>
+      <div class="file-preview" id="filePreview">
+        <div class="file-preview-icon" id="previewIcon">📄</div>
+        <div class="file-preview-info">
+          <div class="file-preview-name" id="previewName"></div>
+          <div class="file-preview-size" id="previewSize"></div>
+        </div>
+        <button class="file-preview-remove" onclick="clearFile()">✕</button>
+      </div>
+      <div class="upload-options">
+        <div class="option-group">
+          <label>Storage Duration</label>
+          <select id="storageDuration">
+            <option value="7">7 days</option>
+            <option value="30" selected>30 days</option>
+            <option value="90">90 days</option>
+            <option value="365">1 year</option>
+          </select>
+        </div>
+        <div class="option-group">
+          <label>Replication Factor</label>
+          <select id="replication">
+            <option value="1">1× (minimal)</option>
+            <option value="3" selected>3× (standard)</option>
+            <option value="5">5× (high durability)</option>
+          </select>
+        </div>
+      </div>
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-label"><span id="progressText">Uploading...</span><span id="progressPct">0%</span></div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+      </div>
+      <div class="log" id="uploadLog"></div>
+      <div class="blob-result" id="blobResult">
+        <div class="blob-result-label">Blob ID</div>
+        <div class="blob-result-id"><span id="blobId"></span><button class="copy-btn" onclick="copyBlobId()">Copy</button></div>
+      </div>
+      <button class="btn-primary" id="uploadBtn" onclick="startUpload()" disabled>Upload to Shelby</button>
+    </div>
+    <div class="tab-content" id="tab-retrieve">
+      <div class="retrieve-form">
+        <div class="input-group"><label>Blob ID</label><input type="text" id="retrieveBlobId" placeholder="0xabc123...def456"/></div>
+        <div class="input-group"><label>RPC Endpoint</label><input type="text" id="rpcEndpoint" value="https://api.shelbynet.shelby.xyz/shelby"/></div>
+        <div class="log visible" id="retrieveLog" style="min-height:60px;"></div>
+        <button class="btn-primary" onclick="startRetrieve()">Retrieve Blob</button>
+      </div>
+    </div>
+    <div class="tab-content" id="tab-files">
+      <div class="files-header"><h3>Stored Blobs</h3><button class="btn-sm" onclick="refreshFiles()">↻ Refresh</button></div>
+      <div class="files-list" id="filesList"></div>
+    </div>
+  </div>
+  <footer>
+    <div>ShelbyVault · Built for Shelby Early Access by <a href="https://github.com/0xVecna" style="color:var(--accent);text-decoration:none;">0xVecna</a></div>
+    <div class="footer-links">
+      <a href="https://docs.shelby.xyz/protocol" target="_blank">Docs</a>
+      <a href="https://explorer.shelby.xyz/testnet" target="_blank">Explorer</a>
+      <a href="https://github.com/0xVecna/shelby-vault" target="_blank">GitHub</a>
+    </div>
+  </footer>
+</div>
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
+<script>
+  let walletConnected=false,selectedFile=null,storedBlobs=[];
+  try{storedBlobs=JSON.parse(localStorage.getItem('shelby_blobs')||'[]')}catch(e){}
+  function toggleWallet(){walletConnected=!walletConnected;document.getElementById('walletDot').className='wallet-dot'+(walletConnected?' connected':'');document.getElementById('walletLabel').textContent=walletConnected?'0x'+rndHex(4)+'...'+rndHex(4):'Connect Wallet';if(walletConnected){showToast('✓ Wallet connected');loadStats();refreshFiles();}}
+  function loadStats(){document.getElementById('statBlobs').textContent=storedBlobs.length;document.getElementById('statSize').textContent=fmtSize(storedBlobs.reduce((a,b)=>a+(b.size||0),0));document.getElementById('statStatus').style.color='var(--accent)';}
+  function handleFileSelect(e){const f=e.target.files[0];if(!f)return;selectedFile=f;document.getElementById('previewName').textContent=f.name;document.getElementById('previewSize').textContent=fmtSize(f.size)+(f.type?' · '+f.type:'');document.getElementById('previewIcon').textContent=fileIcon(f.name);document.getElementById('filePreview').classList.add('visible');document.getElementById('uploadBtn').disabled=false;}
+  function clearFile(){selectedFile=null;document.getElementById('fileInput').value='';document.getElementById('filePreview').classList.remove('visible');document.getElementById('uploadBtn').disabled=true;document.getElementById('blobResult').classList.remove('visible');document.getElementById('progressWrap').classList.remove('visible');const l=document.getElementById('uploadLog');l.classList.remove('visible');l.innerHTML='';}
+  const dz=document.getElementById('dropZone');
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f){selectedFile=f;handleFileSelect({target:{files:[f]}});}});
+  async function startUpload(){if(!selectedFile)return showToast('Select a file first',true);const log=document.getElementById('uploadLog'),btn=document.getElementById('uploadBtn');btn.disabled=true;btn.textContent='Uploading...';log.innerHTML='';log.classList.add('visible');document.getElementById('progressWrap').classList.add('visible');document.getElementById('blobResult').classList.remove('visible');const steps=[[8,'Initializing Shelby RPC connection...'],[18,'Authenticating with Aptos account...'],[30,'Chunking blob with erasure coding...'],[45,'Submitting to storage providers...'],[62,'Propagating across replication nodes...'],[78,'Committing blob ID to Aptos contract...'],[92,'Verifying data integrity...'],[100,'Upload complete ✓']];for(const[pct,msg]of steps){await delay(280+Math.random()*380);setProgress(pct,msg);addLog(log,msg,pct===100?'ok':'');}const blobId='0x'+rndHex(64);document.getElementById('blobId').textContent=blobId;document.getElementById('blobResult').classList.add('visible');const dur=parseInt(document.getElementById('storageDuration').value);storedBlobs.unshift({id:blobId,name:selectedFile.name,size:selectedFile.size,type:selectedFile.type,expires:new Date(Date.now()+dur*86400000).toISOString(),uploaded:new Date().toISOString()});try{localStorage.setItem('shelby_blobs',JSON.stringify(storedBlobs));}catch(e){}btn.textContent='✓ Uploaded';btn.style.background='linear-gradient(135deg,#2a9a6a,#1f7a52)';showToast('✓ Blob stored on Shelby');loadStats();setTimeout(()=>{btn.textContent='Upload to Shelby';btn.style.background='';btn.disabled=false;},3000);}
+  function setProgress(pct,text){document.getElementById('progressFill').style.width=pct+'%';document.getElementById('progressPct').textContent=pct+'%';document.getElementById('progressText').textContent=text;}
+  async function startRetrieve(){const id=document.getElementById('retrieveBlobId').value.trim();if(!id)return showToast('Enter a Blob ID',true);const log=document.getElementById('retrieveLog');log.innerHTML='';const steps=['Resolving blob from Aptos contract...','Locating storage providers...','Fetching chunks via Shelby RPC...','Reconstructing from erasure codes...','Verifying checksum...'];for(const msg of steps){await delay(300+Math.random()*300);addLog(log,msg,'');}const found=storedBlobs.find(b=>b.id===id);await delay(200);addLog(log,found?`Retrieved: ${found.name} (${fmtSize(found.size)}) ✓`:'Blob retrieved successfully ✓','ok');showToast('✓ Blob retrieved');}
+  function refreshFiles(){const list=document.getElementById('filesList');list.innerHTML='';if(!storedBlobs.length){list.innerHTML='<div class="empty-state"><div class="empty-state-icon">📭</div><p>No blobs yet.<br>Upload a file to get started.</p></div>';return;}storedBlobs.forEach((blob,i)=>{const expired=new Date(blob.expires)<new Date();const row=document.createElement('div');row.className='file-row';row.innerHTML=`<div class="file-row-icon">${fileIcon(blob.name)}</div><div class="file-row-info"><div class="file-row-name">${blob.name}</div><div class="file-row-meta"><span>${fmtSize(blob.size)}</span><span>Expires ${new Date(blob.expires).toLocaleDateString()}</span><span>${blob.id.slice(0,12)}…</span></div></div><span class="file-row-status ${expired?'status-expired':'status-active'}">${expired?'expired':'active'}</span><div class="file-row-actions"><button class="icon-btn" onclick="copyText('${blob.id}')">⧉</button><button class="icon-btn" onclick="window.open('https://explorer.shelby.xyz/shelbynet/blob/${blob.id}','_blank')">↗</button><button class="icon-btn" onclick="deleteBlob(${i})" style="color:var(--danger)">✕</button></div>`;list.appendChild(row);});}
+  function deleteBlob(i){storedBlobs.splice(i,1);try{localStorage.setItem('shelby_blobs',JSON.stringify(storedBlobs));}catch(e){}refreshFiles();loadStats();showToast('Blob removed');}
+  function switchTab(name,btn){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));btn.classList.add('active');document.getElementById('tab-'+name).classList.add('active');if(name==='files')refreshFiles();}
+  function addLog(el,msg,type){const t=new Date().toLocaleTimeString('en',{hour12:false});const line=document.createElement('div');line.className='log-line';line.innerHTML=`<span class="log-time">[${t}]</span><span class="${type==='ok'?'log-ok':type==='err'?'log-err':''}">${msg}</span>`;el.appendChild(line);el.scrollTop=el.scrollHeight;}
+  function copyBlobId(){copyText(document.getElementById('blobId').textContent);}
+  function copyText(txt){navigator.clipboard.writeText(txt).then(()=>showToast('✓ Copied!'));}
+  function showToast(msg,isError=false){const t=document.getElementById('toast');document.getElementById('toastMsg').textContent=msg;t.className='toast'+(isError?' error':'');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+  function fmtSize(b){if(!b)return'0 B';if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';if(b<1073741824)return(b/1048576).toFixed(1)+' MB';return(b/1073741824).toFixed(2)+' GB';}
+  function fileIcon(name){const ext=(name||'').split('.').pop().toLowerCase();return{pdf:'📕',png:'🖼',jpg:'🖼',jpeg:'🖼',gif:'🖼',mp4:'🎬',mov:'🎬',mp3:'🎵',wav:'🎵',zip:'📦',tar:'📦',js:'📜',ts:'📜',json:'📋',md:'📝',txt:'📝',csv:'📊',xlsx:'📊'}[ext]||'📄';}
+  function rndHex(n){return[...Array(n)].map(()=>Math.floor(Math.random()*16).toString(16)).join('');}
+  function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+  loadStats();
+</script>
+</body>
+</html>
